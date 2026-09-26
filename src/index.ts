@@ -1,48 +1,58 @@
 import express from "express";
 import cors from "cors";
-import type { VerificationRequest, VerificationReport } from "./types";
+import path from "path";
+import apiRouter from "./api/routes";
+import { buildTypeIndex } from "./agents/typeDefinitionAgent";
 
 const PORT = Number(process.env.PORT ?? 3000);
+const PREWARM_PACKAGES = (process.env.PREWARM_PACKAGES ?? "stripe")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 
 // ---------------------------------------------------------------------------
-// Health check
+// API routes — mounted at /api
 // ---------------------------------------------------------------------------
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok", version: "0.1.0" });
-});
+app.use("/api", apiRouter);
 
 // ---------------------------------------------------------------------------
-// POST /verify — main verification endpoint (stub, agents wired in later)
+// Static dashboard
 // ---------------------------------------------------------------------------
-app.post("/verify", async (req, res) => {
-  const body = req.body as VerificationRequest;
-
-  if (!body.code || !body.language) {
-    res.status(400).json({ error: "Missing required fields: code, language" });
-    return;
-  }
-
-  const report: VerificationReport = {
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-    verdict: "VERIFIED",
-    fromMemory: false,
-    agentResults: [],
-    totalDurationMs: 0,
-  };
-
-  res.json(report);
-});
+const dashboardDir = path.join(__dirname, "..", "dashboard");
+app.use(express.static(dashboardDir));
 
 // ---------------------------------------------------------------------------
-// Start server
+// Start
 // ---------------------------------------------------------------------------
 app.listen(PORT, () => {
   console.log(`groundtruth-guard listening on http://localhost:${PORT}`);
+
+  // Pre-warm type indexes after the event loop is free so the port is bound first
+  setImmediate(() => {
+    const prewarmRoots = [
+      process.cwd(),
+      path.join(process.cwd(), "examples", "checkout-demo"),
+    ];
+
+    for (const root of prewarmRoots) {
+      for (const pkg of PREWARM_PACKAGES) {
+        const pkgDir = path.join(root, "node_modules", pkg);
+        const t0 = Date.now();
+        try {
+          buildTypeIndex(pkgDir);
+          console.log(
+            `[prewarm] ${pkg} @ ${path.relative(process.cwd(), root) || "."} — ${Date.now() - t0}ms`
+          );
+        } catch {
+          // Directory may not exist for examples/checkout-demo — skip silently
+        }
+      }
+    }
+  });
 });
 
 export default app;
