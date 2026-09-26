@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "command": "node ../../scripts/bob-hook.mjs",
+        "timeout": 30
+      }
+    ],
+    "PostToolUse": [
+      {
+        "command": "node ../../scripts/bob-hook.mjs",
+        "timeout": 30
+      }
+    ]
+  }
+}

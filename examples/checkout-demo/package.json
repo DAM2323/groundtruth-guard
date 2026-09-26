@@ -1,0 +1,12 @@
+{
+  "name": "checkout-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Demo project — Bob works here with GroundTruth Guard active.",
+  "scripts": {
+    "verify": "node ../../scripts/verify-file.mjs"
+  },
+  "dependencies": {
+    "stripe": "^16.12.0"
+  }
+}
