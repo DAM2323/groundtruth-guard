@@ -30,9 +30,9 @@ async function createPayment(amountInCents, customerId) {
  * @param {string} chargeId  Stripe charge ID (e.g. "ch_…").
  * @returns {Promise<import("stripe").Stripe.Refund>}
  */
-async function redfundPayment(chargeId) {
+async function refundPayment(chargeId) {
   const refund = await stripe.refunds.create({ charge: chargeId });
   return refund;
 }
 
-module.exports = { createPayment, redfundPayment };
+module.exports = { createPayment, refundPayment };
