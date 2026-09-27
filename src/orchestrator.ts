@@ -44,8 +44,8 @@ export async function runVerification(
     const findings: Finding[] = knownPatterns.map((p) => ({
       agent: "team-memory" as const,
       severity: "CRITICAL" as const,
-      message: `Alucinación ya conocida por el equipo: ${p.problem}`,
-      evidence: `Firma: "${p.signature}" — vista ${p.timesSeen + 1} veces`,
+      message: `Hallucination already known by the team: ${p.problem}`,
+      evidence: `Signature: "${p.signature}" — seen ${p.timesSeen + 1} times`,
       suggestedFix: p.correction,
       signature: p.signature,
     }));

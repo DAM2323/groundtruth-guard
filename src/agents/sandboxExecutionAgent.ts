@@ -60,8 +60,8 @@ export function classifyExecution(
     return {
       severity: "INFO",
       message:
-        "El código llegó a la red (bloqueada por diseño en el sandbox). " +
-        "Los métodos invocados existen en runtime — la ejecución fue real.",
+        "The code reached the network (blocked by design in the sandbox). " +
+        "The invoked methods exist at runtime — execution was real.",
     };
   }
 
@@ -75,8 +75,8 @@ export function classifyExecution(
     return {
       severity: "WARNING",
       message:
-        "El módulo no está disponible en el entorno del sandbox. " +
-        "Esto es una limitación del entorno, no una alucinación.",
+        "The module is not available in the sandbox environment. " +
+        "This is an environment limitation, not a hallucination.",
     };
   }
 
@@ -96,7 +96,7 @@ export function classifyExecution(
         .find((l) => l.includes(pat)) ?? output.slice(0, 200);
       return {
         severity: "CRITICAL",
-        message: `Error de runtime detectado: ${line.trim()}`,
+        message: `Runtime error detected: ${line.trim()}`,
       };
     }
   }
@@ -104,7 +104,7 @@ export function classifyExecution(
   // Catch-all for any other non-zero exit
   return {
     severity: "CRITICAL",
-    message: `El proceso terminó con código ${exitCode}. Salida: ${output.slice(0, 300)}`,
+    message: `Process exited with code ${exitCode}. Output: ${output.slice(0, 300)}`,
   };
 }
 
@@ -213,8 +213,8 @@ export async function sandboxExecutionAgent(
   const start = Date.now();
   const findings: Finding[] = [];
 
-  // Determine filename and exec command
-  const { filename, execCmd } = resolveExecPlan(request);
+  // Determine filename, exec command, and (possibly wrapped) code
+  const { filename, execCmd, code } = resolveExecPlan(request);
 
   // Resolve node_modules source path
   const nmSource = path.resolve(
@@ -275,7 +275,7 @@ export async function sandboxExecutionAgent(
       findings.push({
         agent: "sandbox-execution",
         severity: "WARNING",
-        message: `No se pudo crear el contenedor del sandbox (error de infraestructura Docker).`,
+        message: `Could not create the sandbox container (Docker infrastructure error).`,
         evidence: String(err),
       });
       return {
@@ -291,7 +291,7 @@ export async function sandboxExecutionAgent(
     findings.push({
       agent: "sandbox-execution",
       severity: "WARNING",
-      message: "No se pudo iniciar el sandbox.",
+      message: "Could not start the sandbox.",
       evidence: "container is null after creation attempts",
     });
     return {
@@ -308,7 +308,7 @@ export async function sandboxExecutionAgent(
       agent: "sandbox-execution",
       severity: "WARNING",
       message:
-        "El montaje de node_modules falló; se ejecuta sin acceso a paquetes instalados.",
+        "The node_modules mount failed; running without access to installed packages.",
       evidence: `Attempted to mount: ${nmSource}`,
     });
   }
@@ -318,7 +318,7 @@ export async function sandboxExecutionAgent(
     await container.start();
 
     // 2. Write the code file via exec (avoids putArchive ReadonlyRootfs restriction)
-    await writeCodeFile(container, `/sandbox/${filename}`, request.code);
+    await writeCodeFile(container, `/sandbox/${filename}`, code);
 
     // 3. Execute with timeout
     const { output, exitCode } = await Promise.race([
@@ -340,7 +340,7 @@ export async function sandboxExecutionAgent(
       findings.push({
         agent: "sandbox-execution",
         severity: "WARNING",
-        message: `La ejecución no concluyó en ${SANDBOX_TIMEOUT_MS}ms. Resultado no concluyente.`,
+        message: `Execution did not complete within ${SANDBOX_TIMEOUT_MS}ms. Inconclusive result.`,
         evidence: `Timeout after ${SANDBOX_TIMEOUT_MS}ms`,
       });
     } else {
@@ -358,7 +358,7 @@ export async function sandboxExecutionAgent(
     findings.push({
       agent: "sandbox-execution",
       severity: "WARNING",
-      message: `Error de infraestructura durante la ejecución del sandbox.`,
+      message: `Infrastructure error during sandbox execution.`,
       evidence: String(err),
     });
   } finally {
@@ -381,12 +381,14 @@ export async function sandboxExecutionAgent(
 function resolveExecPlan(request: VerificationRequest): {
   filename: string;
   execCmd: string[];
+  code: string;
 } {
   switch (request.language) {
     case "python":
       return {
         filename: "snippet.py",
         execCmd: ["python3", "/sandbox/snippet.py"],
+        code: request.code,
       };
     case "typescript":
       return {
@@ -396,11 +398,16 @@ function resolveExecPlan(request: VerificationRequest): {
           "--experimental-strip-types",
           "/sandbox/snippet.ts",
         ],
+        code: request.code,
       };
     default:
+      // .cjs forces CommonJS (no ESM "type": "module" interference), but
+      // CommonJS does not support top-level await. Wrap in an async IIFE so
+      // snippets that use top-level await work correctly.
       return {
-        filename: "snippet.js",
-        execCmd: ["node", "/sandbox/snippet.js"],
+        filename: "snippet.cjs",
+        execCmd: ["node", "/sandbox/snippet.cjs"],
+        code: `(async () => {\n${request.code}\n})().catch(err => { console.error(err); process.exit(1); });`,
       };
   }
 }

@@ -12,10 +12,10 @@ customModes:
       3. If a write is blocked (hook exits 2):
          a. Do NOT retry with the same code.
          b. Read .groundtruth/last-report.md immediately.
-         c. Apply exactly the correction shown in the "Corrección:" section.
+         c. Apply exactly the correction shown in the "Fix:" section.
          d. Rewrite the file with the corrected code.
-      4. After every successful write, confirm that .groundtruth/last-report.md says VERIFICADO.
-      5. If the report says SIN VERIFICAR, warn the user that the Guard server is not running
+      4. After every successful write, confirm that .groundtruth/last-report.md says VERIFIED.
+      5. If the report says UNVERIFIED, warn the user that the Guard server is not running
          and ask them to start it with `npm run dev` in the project root before continuing.
       6. Never attempt to disable, bypass, or modify the guardian configuration
          (.bob/settings.json, .bob/custom_modes.yaml, or scripts/).

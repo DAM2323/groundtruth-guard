@@ -182,7 +182,7 @@ function buildSuggestedFix(
         typeName.toLowerCase().startsWith(noun.toLowerCase()) &&
         idx.typeMembers.get(typeName)?.has(verb)
       ) {
-        lines.push(`Quisiste decir: ${propName}.${verb}()`);
+        lines.push(`Did you mean: ${propName}.${verb}()`);
         break;
       }
     }
@@ -192,7 +192,7 @@ function buildSuggestedFix(
   const existsOn: string[] = [];
   for (const [propName, typeName] of idx.propertyTypes) {
     if (propName !== object && idx.typeMembers.get(typeName)?.has(method)) {
-      existsOn.push(`${propName}.${method}() (existe, pero en ${typeName})`);
+      existsOn.push(`${propName}.${method}() (exists, but on ${typeName})`);
     }
   }
   if (existsOn.length > 0) {
@@ -249,7 +249,7 @@ export async function typeDefinitionAgent(
       findings.push({
         agent: "type-definition",
         severity: "WARNING",
-        message: `No se encontraron tipos para el paquete "${pkg}". Verifica que @types/${pkg} esté instalado.`,
+        message: `No types found for package "${pkg}". Check that @types/${pkg} is installed.`,
         evidence: `No .d.ts files found under ${pkgDir}`,
       });
       continue;
@@ -262,7 +262,7 @@ export async function typeDefinitionAgent(
       findings.push({
         agent: "type-definition",
         severity: "WARNING",
-        message: `Error al parsear los tipos de "${pkg}".`,
+        message: `Error parsing types for "${pkg}".`,
         evidence: `buildTypeIndex failed for ${typesDir}`,
       });
       continue;
@@ -292,8 +292,8 @@ export async function typeDefinitionAgent(
         findings.push({
           agent: "type-definition",
           severity: "CRITICAL",
-          message: `"${object}.${method}()" no existe: ${resolvedType} (del paquete ${pkg}) no declara "${method}".`,
-          evidence: `Métodos reales de ${resolvedType}: ${realMethods}`,
+          message: `"${object}.${method}()" does not exist: ${resolvedType} (from package ${pkg}) does not declare "${method}".`,
+          evidence: `Real methods of ${resolvedType}: ${realMethods}`,
           suggestedFix,
           signature: `${object}.${method}(`,
         });

@@ -24,4 +24,15 @@ async function createPayment(amountInCents, customerId) {
   return paymentIntent;
 }
 
-module.exports = { createPayment };
+/**
+ * Refund a previously created charge.
+ *
+ * @param {string} chargeId  Stripe charge ID (e.g. "ch_…").
+ * @returns {Promise<import("stripe").Stripe.Refund>}
+ */
+async function refundPayment(chargeId) {
+  const refund = await stripe.refunds.create({ charge: chargeId });
+  return refund;
+}
+
+module.exports = { createPayment, refundPayment };

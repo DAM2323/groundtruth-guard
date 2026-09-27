@@ -3,7 +3,10 @@
  * bob-hook.mjs — IBM Bob lifecycle hook for GroundTruth Guard.
  *
  * Bob invokes this script for every tool call.  The payload arrives on stdin
- * as a single JSON line: { event, session_id, tool, input }.
+ * as a single JSON line.  Key names vary across Bob versions:
+ *   event:  event | hook_event_name | hookEventName
+ *   tool:   tool  | tool_name       | toolName
+ *   input:  input | tool_input      | toolInput | params | arguments
  *
  * PreToolUse  + content present  → verify BEFORE the write; exit 2 to block.
  * PostToolUse + no content        → read file from disk, verify; can't block.
@@ -37,22 +40,57 @@ function log(entry) {
 }
 
 /**
+ * Read a value from a payload object trying multiple candidate keys in order.
+ */
+function pick(obj, ...keys) {
+  for (const key of keys) {
+    if (obj[key] !== undefined && obj[key] !== null) return obj[key];
+  }
+  return undefined;
+}
+
+/**
+ * Normalise the input sub-object from the payload.
+ * Bob 2.2.0 may send tool_input / toolInput / params / arguments.
+ * If the value is a JSON string, parse it.
+ */
+function resolveInput(payload) {
+  const raw = pick(payload, "input", "tool_input", "toolInput", "params", "arguments");
+  if (raw === undefined) return {};
+  if (typeof raw === "string") {
+    try { return JSON.parse(raw); } catch { return {}; }
+  }
+  if (typeof raw === "object") return raw;
+  return {};
+}
+
+/**
  * Extract the file path from the tool input object.
+ * Falls back to the top-level payload if not found inside input.
  * Bob's internal tool names change; we inspect all plausible keys.
  */
-function extractPath(input) {
+function extractPath(input, payload) {
   for (const key of ["path", "file_path", "filePath", "target_file", "file"]) {
     if (typeof input[key] === "string" && input[key]) return input[key];
+  }
+  // Fallback: check top-level payload keys
+  for (const key of ["path", "file_path", "filePath", "target_file", "file"]) {
+    if (typeof payload[key] === "string" && payload[key]) return payload[key];
   }
   return null;
 }
 
 /**
  * Extract the file content from the tool input object.
+ * Falls back to the top-level payload if not found inside input.
  */
-function extractContent(input) {
+function extractContent(input, payload) {
   for (const key of ["content", "file_text", "new_content", "contents", "text"]) {
     if (typeof input[key] === "string") return input[key];
+  }
+  // Fallback: check top-level payload keys
+  for (const key of ["content", "file_text", "new_content", "contents", "text"]) {
+    if (typeof payload[key] === "string") return payload[key];
   }
   return null;
 }
@@ -63,19 +101,19 @@ function extractContent(input) {
 
 function writeServerDownReport(filePath) {
   const md = [
-    "# GroundTruth Guard: ⚠️ SIN VERIFICAR",
+    "# GroundTruth Guard: ⚠️ UNVERIFIED",
     "",
-    `**Archivo:** \`${filePath}\`  `,
-    `**Fecha:** ${new Date().toISOString()}  `,
+    `**File:** \`${filePath}\`  `,
+    `**Date:** ${new Date().toISOString()}  `,
     "",
-    "El servidor de GroundTruth Guard no está disponible (`" + GUARD_URL + "`).  ",
-    "El código **no fue verificado**.",
+    "The GroundTruth Guard server is not available (`" + GUARD_URL + "`).  ",
+    "The code was **not verified**.",
     "",
-    "## Instrucciones",
+    "## Instructions",
     "",
-    "1. Arranca el servidor: `npm run dev` en la raíz del proyecto.",
-    "2. Vuelve a ejecutar la herramienta o ejecuta `node scripts/verify-file.mjs <archivo>` manualmente.",
-    "3. No ejecutes código de IA sin verificar en producción.",
+    "1. Start the server: `npm run dev` in the project root.",
+    "2. Re-run the tool or run `node scripts/verify-file.mjs <file>` manually.",
+    "3. Do not run unverified AI code in production.",
     "",
   ].join("\n");
 
@@ -101,15 +139,20 @@ async function main() {
     process.exit(0);
   }
 
-  const { event, tool, input = {} } = payload;
+  // Tolerate different key names across Bob versions
+  const event = pick(payload, "event", "hook_event_name", "hookEventName");
+  const tool  = pick(payload, "tool", "tool_name", "toolName");
+  const input = resolveInput(payload);
 
-  const filePath = extractPath(input);
-  const content  = extractContent(input);
+  const filePath = extractPath(input, payload);
+  const content  = extractContent(input, payload);
 
   const logBase = {
     event,
     tool,
     inputKeys: Object.keys(input),
+    topKeys:   Object.keys(payload),
+    rawPreview: raw.trim().slice(0, 500),
   };
 
   // --- Ignore non-code files and files inside .groundtruth -----------------
@@ -131,7 +174,7 @@ async function main() {
   }
 
   // --- PreToolUse with content: verify BEFORE writing ----------------------
-  if (event === "PreToolUse" && content !== null) {
+  if (event === "PreToolUse" && content !== null && content !== undefined) {
     const projectRoot = resolve(CWD);
     let report;
 
@@ -150,8 +193,8 @@ async function main() {
     if (report.verdict === "FAILED") {
       // Print reason to stderr (Bob shows stderr in the UI for blocked tools)
       process.stderr.write(
-        `[GroundTruth Guard] Escritura BLOQUEADA para ${filePath}\n` +
-        `Reporte: ${join(LOG_DIR, "last-report.md")}\n`
+        `[GroundTruth Guard] Write BLOCKED for ${filePath}\n` +
+        `Report: ${join(LOG_DIR, "last-report.md")}\n`
       );
       log({ ...logBase, filePath, action: "blocked", verdict: "FAILED" });
       process.exit(2);

@@ -110,20 +110,20 @@ export async function packageRegistryAgent(
         findings.push({
           agent: "package-registry",
           severity: "CRITICAL",
-          message: `El paquete "${pkg}" no existe en el registro real.`,
+          message: `Package "${pkg}" does not exist in the real registry.`,
           evidence: isPython
             ? `GET https://pypi.org/pypi/${pkg}/json → 404`
             : `GET https://registry.npmjs.org/${pkg} → 404`,
           suggestedFix:
-            `No instales "${pkg}" a ciegas: podría ser un paquete inventado por la IA ` +
-            `(slopsquatting). Verifica el nombre exacto en el registro oficial antes de ejecutar npm install / pip install.`,
+            `Do not install "${pkg}" blindly: it may be a package invented by the AI ` +
+            `(slopsquatting). Verify the exact name in the official registry before running npm install / pip install.`,
           signature: `pkg:${pkg}`,
         });
       } else if (status === "network-error") {
         findings.push({
           agent: "package-registry",
           severity: "WARNING",
-          message: `No se pudo verificar el paquete "${pkg}" (error de red).`,
+          message: `Could not verify package "${pkg}" (network error).`,
           evidence: `fetch failed for ${pkg}`,
           signature: `pkg:${pkg}`,
         });

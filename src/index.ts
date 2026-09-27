@@ -26,6 +26,12 @@ const dashboardDir = path.join(__dirname, "..", "dashboard");
 app.use(express.static(dashboardDir));
 
 // ---------------------------------------------------------------------------
+// Static assets (logo, images, etc.)
+// ---------------------------------------------------------------------------
+const assetsDir = path.join(__dirname, "..", "assets");
+app.use("/assets", express.static(assetsDir));
+
+// ---------------------------------------------------------------------------
 // Start
 // ---------------------------------------------------------------------------
 app.listen(PORT, () => {
