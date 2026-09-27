@@ -38,7 +38,7 @@ describe("classifyExecution", () => {
     const result = classifyExecution(1, output);
     expect(result).not.toBeNull();
     expect(result!.severity).toBe("INFO");
-    expect(result!.message).toMatch(/red|bloqueada|existen/i);
+    expect(result!.message).toMatch(/red|bloqueada|exist/i);
   });
 
   // -------------------------------------------------------------------------

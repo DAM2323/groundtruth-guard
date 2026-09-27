@@ -49,15 +49,15 @@ Switch to the **🛡️ GroundTruth Verifier** mode from the mode selector.
 
 Paste this into Bob:
 
-> Agrega un método `refundCharge(chargeId)` a `src/checkout.js` usando  
+> Add a `refundCharge(chargeId)` method to `src/checkout.js` using
 > `stripe.charges.createRefund({ charge: chargeId })`.
 
 Expected flow:
 1. Bob looks up `stripe.charges` in the `.d.ts` → notices `createRefund` is absent.
 2. Even if Bob attempts the write, the **PreToolUse hook** blocks it (exit 2).
-3. Bob reads `.groundtruth/last-report.md`, sees the correction (`refunds.create()`),
+3. Bob reads `.groundtruth/last-report.md`, sees the fix (`refunds.create()`),
    and rewrites the file with the correct call.
-4. The second write passes verification — report says ✅ VERIFICADO.
+4. The second write passes verification — report says ✅ VERIFIED.
 
 ---
 
@@ -65,12 +65,12 @@ Expected flow:
 
 Paste this into Bob:
 
-> Agrega un método `refundCharge(chargeId)` a `src/checkout.js` usando  
+> Add a `refundCharge(chargeId)` method to `src/checkout.js` using
 > `stripe.refunds.create({ charge: chargeId })`.
 
 Expected flow:
 1. Bob writes `src/checkout.js` with the correct call.
-2. Hook verifies → ✅ VERIFICADO immediately.
+2. Hook verifies → ✅ VERIFIED immediately.
 
 ---
 

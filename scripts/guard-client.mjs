@@ -95,17 +95,17 @@ export async function verifyCode(code, language, projectRoot) {
 export function renderReport(report, filePath) {
   const isVerified = report.verdict === "VERIFIED";
   const title = isVerified
-    ? "GroundTruth Guard: ✅ VERIFICADO"
-    : "GroundTruth Guard: ❌ RECHAZADO";
+    ? "GroundTruth Guard: ✅ VERIFIED"
+    : "GroundTruth Guard: ❌ REJECTED";
 
   const lines = [
     `# ${title}`,
     "",
-    `**Archivo:** \`${filePath}\`  `,
+    `**File:** \`${filePath}\`  `,
     `**ID:** \`${report.id}\`  `,
-    `**Fecha:** ${report.createdAt}  `,
-    `**Duración:** ${report.totalDurationMs}ms  `,
-    ...(report.fromMemory ? ["**Fuente:** memoria del equipo  "] : []),
+    `**Date:** ${report.createdAt}  `,
+    `**Duration:** ${report.totalDurationMs}ms  `,
+    ...(report.fromMemory ? ["**Source:** team memory  "] : []),
     "",
   ];
 
@@ -124,21 +124,21 @@ export function renderReport(report, filePath) {
   }
 
   if (criticals.length > 0) {
-    lines.push("## 🚫 Hallazgos bloqueantes", "");
+    lines.push("## 🚫 Blocking findings", "");
     criticals.forEach(({ finding, agent }, i) => {
-      lines.push(`### Prueba ${String.fromCharCode(65 + i)} (${agent})`, "");
-      lines.push(`**Problema:** ${finding.message}`, "");
+      lines.push(`### Evidence ${String.fromCharCode(65 + i)} (${agent})`, "");
+      lines.push(`**Problem:** ${finding.message}`, "");
       if (finding.evidence) {
-        lines.push("**Evidencia:**", "```", finding.evidence, "```", "");
+        lines.push("**Evidence:**", "```", finding.evidence, "```", "");
       }
       if (finding.suggestedFix) {
-        lines.push(`**Corrección:** ${finding.suggestedFix}`, "");
+        lines.push(`**Fix:** ${finding.suggestedFix}`, "");
       }
     });
   }
 
   if (notes.length > 0) {
-    lines.push("## ℹ️ Notas no bloqueantes", "");
+    lines.push("## ℹ️ Non-blocking notes", "");
     for (const { finding, agent } of notes) {
       lines.push(`- **[${finding.severity}] ${agent}:** ${finding.message}`);
       if (finding.evidence) {
@@ -149,7 +149,7 @@ export function renderReport(report, filePath) {
   }
 
   if (isVerified && criticals.length === 0) {
-    lines.push("_El código pasó todos los agentes de verificación._", "");
+    lines.push("_The code passed all verification agents._", "");
   }
 
   return lines.join("\n");

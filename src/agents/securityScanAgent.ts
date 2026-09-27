@@ -12,7 +12,7 @@ interface Pattern {
 
 const PATTERNS: Pattern[] = [
   // -------------------------------------------------------------------------
-  // Secreto hardcodeado: api_key / secret / token / password = "valor 12+"
+  // Hardcoded secret: api_key / secret / token / password = "value 12+"
   // -------------------------------------------------------------------------
   {
     id: "hardcoded-secret",
@@ -23,17 +23,17 @@ const PATTERNS: Pattern[] = [
     },
     toFinding: (m) => ({
       severity: "CRITICAL",
-      message: `Secreto hardcodeado detectado: la cadena "${m[1].slice(0, 6)}…" parece una credencial real asignada directamente en el código.`,
+      message: `Hardcoded secret detected: the string "${m[1].slice(0, 6)}…" looks like a real credential assigned directly in code.`,
       evidence: m[0].trim(),
       suggestedFix:
-        "Mueve el secreto a una variable de entorno y accede a él con `process.env.TU_VARIABLE`. " +
-        "Nunca incluyas credenciales reales en el código fuente.",
+        "Move the secret to an environment variable and access it with `process.env.YOUR_VARIABLE`. " +
+        "Never include real credentials in source code.",
       signature: "hardcoded-secret",
     }),
   },
 
   // -------------------------------------------------------------------------
-  // SQL concatenado con +
+  // SQL concatenated with +
   // -------------------------------------------------------------------------
   {
     id: "sql-injection",
@@ -46,12 +46,12 @@ const PATTERNS: Pattern[] = [
     toFinding: (m) => ({
       severity: "CRITICAL",
       message:
-        "Posible inyección SQL: se está concatenando una cadena SQL con el operador `+`. " +
-        "Un atacante puede manipular la consulta si algún operando proviene de entrada del usuario.",
+        "Possible SQL injection: a SQL string is being concatenated with the `+` operator. " +
+        "An attacker can manipulate the query if any operand comes from user input.",
       evidence: m[0].trim(),
       suggestedFix:
-        "Usa consultas parametrizadas (prepared statements) en lugar de concatenación de cadenas. " +
-        "Ejemplo con node-postgres: `client.query('SELECT * FROM users WHERE id = $1', [id])`.",
+        "Use parameterized queries (prepared statements) instead of string concatenation. " +
+        "Example with node-postgres: `client.query('SELECT * FROM users WHERE id = $1', [id])`.",
       signature: "sql-concatenation(+",
     }),
   },
@@ -68,17 +68,17 @@ const PATTERNS: Pattern[] = [
     toFinding: (m) => ({
       severity: "CRITICAL",
       message:
-        "`eval()` ejecuta código arbitrario en tiempo de ejecución y es una puerta de entrada para ataques de inyección de código.",
+        "`eval()` executes arbitrary code at runtime and is an entry point for code injection attacks.",
       evidence: m[0].trim(),
       suggestedFix:
-        "Elimina el uso de `eval()`. Si necesitas parsear datos usa `JSON.parse()`. " +
-        "Si necesitas ejecutar funciones dinámicamente, usa un mapa de funciones conocidas.",
+        "Remove the use of `eval()`. If you need to parse data, use `JSON.parse()`. " +
+        "If you need to call functions dynamically, use a map of known functions.",
       signature: "eval(",
     }),
   },
 
   // -------------------------------------------------------------------------
-  // await sin manejo de errores cercano (try/catch o .catch)
+  // await without nearby error handling (try/catch or .catch)
   // -------------------------------------------------------------------------
   {
     id: "unhandled-await",
@@ -101,12 +101,12 @@ const PATTERNS: Pattern[] = [
     toFinding: (m) => ({
       severity: "WARNING",
       message:
-        "Expresión `await` sin manejo de errores cercano. Si la promesa es rechazada, " +
-        "la excepción podría no capturarse y causar un fallo silencioso o un UnhandledPromiseRejection.",
+        "`await` expression without nearby error handling. If the promise rejects, " +
+        "the exception may go uncaught and cause a silent failure or UnhandledPromiseRejection.",
       evidence: m[0].slice(0, 80).trim(),
       suggestedFix:
-        "Envuelve la llamada en un bloque `try { ... } catch (err) { ... }` " +
-        "o encadena `.catch(err => ...)` para manejar el rechazo explícitamente.",
+        "Wrap the call in a `try { ... } catch (err) { ... }` block " +
+        "or chain `.catch(err => ...)` to handle the rejection explicitly.",
       signature: "unhandled-await",
     }),
   },
